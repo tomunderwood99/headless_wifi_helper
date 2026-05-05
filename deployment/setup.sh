@@ -226,13 +226,11 @@ PASSWORD_ESCAPED="$(sed_replacement_escape "$(systemd_quote_value "$AP_PASSWORD_
 
 TMP_UNIT="$(mktemp)"
 cp "$SERVICE_SRC" "$TMP_UNIT"
-sed -i \
-  -e "s|^WorkingDirectory=.*|WorkingDirectory=$PROJECT_DIR|" \
-  -e "s|^ExecStart=.*|ExecStart=$VENV_DIR/bin/python wifi_configurator.py|" \
-  -e "s|^Environment=AP_SSID=.*|Environment=\"AP_SSID=$SSID_ESCAPED\"|" \
-  -e "s|^Environment=AP_PASSWORD=.*|Environment=\"AP_PASSWORD=$PASSWORD_ESCAPED\"|" \
-  "$TMP_UNIT"
 
+# Inject ENV_FILE_PATH / ENV_KEY_NAME *before* the sed pass below: that pass
+# rewrites `Environment=AP_SSID=...` into the quoted `Environment="AP_SSID=..."`
+# form, which would break the awk anchor here. Doing this first keeps the
+# anchor matching the unquoted line as it appears in the source unit.
 if [[ -n "${ENV_FILE_PATH}" ]] || [[ -n "${ENV_KEY_NAME_VALUE}" ]]; then
   awk -v p="$ENV_FILE_PATH" -v k="$ENV_KEY_NAME_VALUE" '
     /^Environment=AP_SSID=/ && !done {
@@ -245,6 +243,13 @@ if [[ -n "${ENV_FILE_PATH}" ]] || [[ -n "${ENV_KEY_NAME_VALUE}" ]]; then
   [[ -n "${ENV_FILE_PATH}" ]] && log "Injected Environment=ENV_FILE_PATH into unit file."
   [[ -n "${ENV_KEY_NAME_VALUE}" ]] && log "Injected Environment=ENV_KEY_NAME into unit file."
 fi
+
+sed -i \
+  -e "s|^WorkingDirectory=.*|WorkingDirectory=$PROJECT_DIR|" \
+  -e "s|^ExecStart=.*|ExecStart=$VENV_DIR/bin/python wifi_configurator.py|" \
+  -e "s|^Environment=AP_SSID=.*|Environment=\"AP_SSID=$SSID_ESCAPED\"|" \
+  -e "s|^Environment=AP_PASSWORD=.*|Environment=\"AP_PASSWORD=$PASSWORD_ESCAPED\"|" \
+  "$TMP_UNIT"
 
 install -m 0644 "$TMP_UNIT" "$SERVICE_DST"
 rm -f "$TMP_UNIT"
