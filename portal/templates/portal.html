@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Configure WiFi</title>
+    <style>
+      :root {
+        --bg: #f1f5f9;
+        --panel: #ffffff;
+        --text: #1e293b;
+        --muted: #64748b;
+        --accent: #0284c7;
+        --accent-hover: #0369a1;
+        --accent-text: #ffffff;
+        --error: #dc2626;
+        --error-bg: #fef2f2;
+        --success: #16a34a;
+        --success-bg: #f0fdf4;
+        --info-bg: #eff6ff;
+        --border: #cbd5e1;
+        --input-bg: #f8fafc;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .card {
+        background: var(--panel);
+        padding: 32px;
+        border-radius: 16px;
+        max-width: 460px;
+        width: 100%;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--border);
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 22px;
+        color: var(--text);
+      }
+      .subtitle {
+        color: var(--muted);
+        margin: 0 0 24px;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 6px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .field { margin-bottom: 16px; }
+      input, select {
+        width: 100%;
+        padding: 10px 12px;
+        font-size: 15px;
+        background: var(--input-bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        outline: none;
+        appearance: auto;
+      }
+      input:focus, select:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+      .row select { flex: 1; }
+      button {
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 16px;
+        transition: background 0.15s ease, opacity 0.15s ease;
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: var(--accent-text);
+        width: 100%;
+      }
+      .btn-primary:hover:not(:disabled) {
+        background: var(--accent-hover);
+      }
+      .btn-primary:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .btn-secondary {
+        background: var(--input-bg);
+        color: var(--accent);
+        border: 1px solid var(--border);
+        padding: 10px 12px;
+        white-space: nowrap;
+      }
+      .btn-secondary:hover:not(:disabled) {
+        border-color: var(--accent);
+        background: var(--info-bg);
+      }
+      .help {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      code {
+        font-size: 11px;
+        background: var(--bg);
+        padding: 1px 4px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+      }
+      .status {
+        margin-top: 20px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        font-size: 14px;
+        line-height: 1.5;
+        display: none;
+      }
+      .status.connecting {
+        display: block;
+        background: var(--info-bg);
+        color: var(--accent);
+        border: 1px solid #bae6fd;
+      }
+      .status.error {
+        display: block;
+        background: var(--error-bg);
+        color: var(--error);
+        border: 1px solid #fecaca;
+      }
+      .status.success {
+        display: block;
+        background: var(--success-bg);
+        color: var(--success);
+        border: 1px solid #bbf7d0;
+      }
+      .spinner {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border: 2px solid rgba(2, 132, 199, 0.2);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .reboot-section {
+        margin-top: 16px;
+        display: none;
+      }
+      .reboot-section.visible { display: block; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Configure WiFi</h1>
+      <p class="subtitle">
+        This Raspberry Pi can't reach a known WiFi network. Pick one below to
+        get it back online.
+      </p>
+
+      <form id="wifi-form" autocomplete="off">
+        <div class="field">
+          <label for="ssid">WiFi Network</label>
+          <div class="row">
+            <select id="ssid-select" name="ssid-select">
+              <option value="">Loading networks...</option>
+            </select>
+            <button type="button" class="btn-secondary" id="rescan-btn">Rescan</button>
+          </div>
+          <input
+            type="text"
+            id="ssid"
+            name="ssid"
+            placeholder="Or type SSID manually"
+            style="margin-top: 8px;"
+            required
+          />
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="new-password" />
+          <div class="help">Leave blank for an open network.</div>
+        </div>
+
+        <div class="field">
+          <label for="api_key">API Key (optional)</label>
+          <!--
+            maxlength matches MAX_API_KEY_LENGTH in portal/server.py. Bump
+            both together if you need to store longer credentials (e.g. JWTs
+            or OAuth tokens that exceed 128 characters).
+          -->
+          <input
+            type="text"
+            id="api_key"
+            name="api_key"
+            placeholder="Paste a key to save"
+            maxlength="128"
+          />
+          <div class="help">
+            Written to <code>{{ env_file_path }}</code> as
+            <code>{{ env_key_name }}=yourkeyhere</code>.
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submit-btn">Save Credentials</button>
+      </form>
+
+      <div id="status" class="status"></div>
+
+      <div class="reboot-section" id="reboot-section">
+        <button type="button" class="btn-primary" id="reboot-btn">Reboot Now</button>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById('wifi-form');
+      const submitBtn = document.getElementById('submit-btn');
+      const statusEl = document.getElementById('status');
+      const rebootSection = document.getElementById('reboot-section');
+      const rebootBtn = document.getElementById('reboot-btn');
+      const ssidSelect = document.getElementById('ssid-select');
+      const ssidInput = document.getElementById('ssid');
+      const rescanBtn = document.getElementById('rescan-btn');
+
+      let pollHandle = null;
+
+      function setStatus(state, message) {
+        statusEl.className = 'status ' + state;
+        if (state === 'connecting') {
+          statusEl.innerHTML = '<span class="spinner"></span>' + escapeText(message);
+        } else {
+          statusEl.textContent = message;
+        }
+      }
+
+      async function loadNetworks() {
+        ssidSelect.innerHTML = '<option value="">Scanning...</option>';
+        rescanBtn.disabled = true;
+        try {
+          const res = await fetch('/scan');
+          const networks = await res.json();
+          if (!networks.length) {
+            ssidSelect.innerHTML = '<option value="">No networks found</option>';
+            return;
+          }
+          ssidSelect.innerHTML = '<option value="">Select a network...</option>' +
+            networks.map(n => {
+              const lock = (n.security && n.security !== '--') ? ' \u{1F512}' : '';
+              return `<option value="${escapeAttr(n.ssid)}">${escapeText(n.ssid)} (${n.signal}%)${lock}</option>`;
+            }).join('');
+        } catch (err) {
+          ssidSelect.innerHTML = '<option value="">Scan failed — try Rescan</option>';
+        } finally {
+          rescanBtn.disabled = false;
+        }
+      }
+
+      function escapeText(s) {
+        return String(s).replace(/[&<>"']/g, c => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+      }
+      function escapeAttr(s) { return escapeText(s); }
+
+      ssidSelect.addEventListener('change', () => {
+        if (ssidSelect.value) ssidInput.value = ssidSelect.value;
+      });
+
+      rescanBtn.addEventListener('click', loadNetworks);
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('ssid', ssidInput.value.trim());
+        formData.append('password', document.getElementById('password').value);
+        formData.append('api_key', document.getElementById('api_key').value.trim());
+
+        submitBtn.disabled = true;
+        rebootSection.classList.remove('visible');
+        setStatus('connecting', 'Saving credentials...');
+
+        try {
+          const res = await fetch('/connect', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (!data.ok) {
+            setStatus('error', data.message || 'Failed to save credentials.');
+            submitBtn.disabled = false;
+            return;
+          }
+        } catch (err) {
+          setStatus('error', 'Could not reach the portal: ' + err.message);
+          submitBtn.disabled = false;
+          return;
+        }
+
+        startPolling();
+      });
+
+      function startPolling() {
+        if (pollHandle) clearInterval(pollHandle);
+        pollHandle = setInterval(async () => {
+          try {
+            const res = await fetch('/status');
+            const data = await res.json();
+            if (data.state === 'connecting') {
+              setStatus('connecting', data.message || 'Saving...');
+            } else if (data.state === 'success') {
+              clearInterval(pollHandle);
+              pollHandle = null;
+              setStatus('success', data.message || 'Saved.');
+              rebootSection.classList.add('visible');
+              submitBtn.disabled = false;
+            } else if (data.state === 'error') {
+              clearInterval(pollHandle);
+              pollHandle = null;
+              setStatus('error', data.message || 'Could not save credentials.');
+              submitBtn.disabled = false;
+            }
+          } catch (err) {
+            // Network blip during transition — keep polling silently.
+          }
+        }, 2000);
+      }
+
+      rebootBtn.addEventListener('click', async () => {
+        rebootBtn.disabled = true;
+        rebootBtn.textContent = 'Rebooting...';
+        // The Pi will shut down the HTTP server before the response arrives —
+        // a fetch network error here means the reboot is already in progress,
+        // so we always show the success message regardless of fetch outcome.
+        try {
+          await fetch('/reboot', { method: 'POST' });
+        } catch (_) {
+          // Expected: connection drops as the Pi reboots.
+        }
+        setStatus('success', 'Rebooting — you can close this page. Reconnect to your normal WiFi in a moment.');
+      });
+
+      loadNetworks();
+    </script>
+  </body>
+</html>
