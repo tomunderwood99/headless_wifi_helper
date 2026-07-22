@@ -9,7 +9,7 @@ Wants=NetworkManager.service
 Before=network-online.target
 
 [Service]
-Type=simple
+Type=oneshot
 User=root
 Group=root
 WorkingDirectory=/home/pi/headless_wifi_helper
